@@ -2,6 +2,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Icons } from "@/components/icons";
 import { LoadingSummary } from "@/components/loading-summary";
 import { LoadingTranscript } from "@/components/loading-transcript";
+import { Seo } from "@/components/seo";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -17,21 +18,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserNav } from "@/components/user-nav";
 import { createSupabaseComponentClient } from "@/lib/supabase/component";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { secondsToHms } from "@/lib/utils";
+import { cn, secondsToHms } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
+import get from "lodash.get";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Markdown from "react-markdown";
-import { toast } from "sonner";
 
-export default function Page({ meeting: defaultMeeting }) {
-  const supabase = createSupabaseComponentClient();
+export default function Page({ isOwner, meeting: defaultMeeting }) {
   const [meeting, setMeeting] = useState(defaultMeeting);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [copied, setCopied] = useState(false);
   const ref = useRef(null);
+  const supabase = createSupabaseComponentClient();
   const router = useRouter();
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
+      if (!isOwner) return;
       const { data, error } = await supabase
         .from("meetings")
         .delete()
@@ -55,6 +59,7 @@ export default function Page({ meeting: defaultMeeting }) {
   });
 
   useEffect(() => {
+    if (!isOwner) return;
     if (meeting.transcript && meeting.summary && meeting.mom) return;
 
     const channel = supabase
@@ -89,133 +94,171 @@ export default function Page({ meeting: defaultMeeting }) {
   };
 
   return (
-    <div>
-      <div className="p-4 flex justify-between items-center sticky top-0">
-        <Breadcrumbs
-          paths={[
-            {
-              href: "/dashboard",
-              label: "Dashboard",
-            },
-            {
-              label: meeting.title,
-            },
-          ]}
-        />
-        <UserNav />
-      </div>
-      <main className="w-full max-w-[70ch] mx-auto mt-8 gap-8 h-full pb-[150px] px-4 lg:px-0">
-        <Tabs defaultValue="summary">
-          <div className="sticky top-0 bg-white py-4 flex justify-between items-center">
-            <TabsList>
-              <TabsTrigger value="summary">
-                Summary
-                {meeting.summary && meeting.mom ? (
-                  <Icons.check className="w-4 h-4 ml-2 text-green-500" />
-                ) : (
-                  <Icons.loading className="w-4 h-4 ml-2 text-neutral-500" />
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="transcript">
-                Transcript{" "}
-                {meeting.transcript ? (
-                  <Icons.check className="w-4 h-4 ml-2 text-green-500" />
-                ) : (
-                  <Icons.loading className="w-4 h-4 ml-2 text-neutral-500" />
-                )}
-              </TabsTrigger>
-            </TabsList>
-
-            <AlertDialog>
-              <AlertDialogTrigger>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 text-red-500 hover:text-red-500 hover:bg-red-50"
-                >
-                  <Icons.trash className="w-4 h-4" />
-                  <span className="hidden md:inline">Remove</span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    Are you sure you want to delete this meeting?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. We can not recover the media,
-                    transcript, and summary data after this meeting is deleted.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <Button
-                    variant="destructive"
-                    onClick={() => {
-                      if (deleteMutation.isPending) {
-                        return;
-                      }
-
-                      deleteMutation.mutate();
-                    }}
-                  >
-                    {deleteMutation.isPending ? (
-                      <Icons.loading className="size-4" />
-                    ) : (
-                      "Delete"
-                    )}
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-          <TabsContent value="summary" className="pt-2">
-            {meeting.summary ? (
-              <>
-                <p>{meeting.summary}</p>
-                <Markdown className="prose mt-8">{meeting.mom}</Markdown>
-              </>
-            ) : (
-              <LoadingSummary />
-            )}
-          </TabsContent>
-          <TabsContent value="transcript" className="space-y-4 py-2">
-            {meeting.transcript ? (
-              meeting.transcript.segments.map((item) => (
-                <div
-                  key={item.text}
-                  className="bg-neutral-100 rounded-2xl p-4 rounded-bl-none flex gap-2 justify-between items-start group"
-                >
-                  <div>
-                    <p className="text-sm text-neutral-500">
-                      {secondsToHms(item.start)}
-                    </p>
-                    <p>{item.text}</p>
-                  </div>
-                  <button
-                    onClick={() => play(item.start)}
-                    className="opacity-0 group-hover:opacity-100"
-                  >
-                    <Icons.playCircle className="w-6 h-6" />
-                  </button>
-                </div>
-              ))
-            ) : (
-              <LoadingTranscript />
-            )}
-          </TabsContent>
-        </Tabs>
-
-        <div className="fixed bottom-0 inset-x-0 bg-white flex justify-center w-full py-4 px-4 lg:px-0">
-          <audio
-            ref={ref}
-            controls
-            src={meeting.file_url}
-            className="w-full max-w-[70ch]"
+    <>
+      <Seo
+        title={"Summary - " + defaultMeeting.title.split(".")[0]}
+        description="Transcribe and summarize your meeting with Meeting Assistant."
+      />
+      <div className="w-screen h-screen flex flex-col">
+        <div className="p-4 flex justify-between items-center border-b border-neutral-200">
+          <Breadcrumbs
+            paths={[
+              ...(isOwner
+                ? [
+                    {
+                      label: "Dashboard",
+                      href: "/dashboard",
+                    },
+                  ]
+                : []),
+              {
+                label: meeting.title,
+              },
+            ]}
           />
+          <UserNav />
         </div>
-      </main>
-    </div>
+        <main className="w-full h-full flex flex-col lg:flex-row lg:overflow-hidden">
+          <div className="w-full bg-neutral-100 justify-center items-center flex flex-col gap-4 md:p-4 lg:p-8">
+            <div className="pt-4 px-4 lg:p-0 self-end space-x-2">
+              <Button
+                variant="outline"
+                className="rounded-full gap-2"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1000);
+                }}
+              >
+                <Icons.share className="size-4" />
+                {copied ? "Link copied!" : "Share"}
+              </Button>
+
+              {isOwner && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="rounded-full hover:text-red-500 gap-2"
+                    >
+                      <Icons.trash className="size-4" />
+                      Remove
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Are you sure you want to delete this meeting?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. We can not recover the
+                        media, transcript, and summary data after this meeting
+                        is deleted.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          if (deleteMutation.isPending || !isOwner) {
+                            return;
+                          }
+
+                          deleteMutation.mutate();
+                        }}
+                      >
+                        {deleteMutation.isPending ? (
+                          <Icons.loading className="size-4" />
+                        ) : (
+                          "Delete"
+                        )}
+                      </Button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+            <div className="relative w-full bg-[#F1F3F4] border border-neutral-200 md:rounded-xl overflow-hidden">
+              <span className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl">
+                No video available
+              </span>
+              <video
+                ref={ref}
+                controls
+                src={meeting.file_url}
+                className="w-full relative"
+                onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+              />
+            </div>
+          </div>
+          <div className="w-full lg:max-w-[500px] lg:overflow-auto lg:flex-grow-0 border-l border-neutral-200">
+            <Tabs defaultValue="summary">
+              <div className="bg-white pb-2 flex justify-between items-center sticky top-0 z-10">
+                <TabsList className="w-full rounded-none">
+                  <TabsTrigger value="summary" className="w-full">
+                    Summary
+                    {meeting.summary && meeting.mom ? (
+                      <Icons.check className="w-4 h-4 ml-2 text-green-500" />
+                    ) : (
+                      <Icons.loading className="w-4 h-4 ml-2 text-neutral-500" />
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="transcript" className="w-full">
+                    Transcript{" "}
+                    {meeting.transcript ? (
+                      <Icons.check className="w-4 h-4 ml-2 text-green-500" />
+                    ) : (
+                      <Icons.loading className="w-4 h-4 ml-2 text-neutral-500" />
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <TabsContent value="summary" className="px-4 lg:px-6">
+                {meeting.summary ? (
+                  <>
+                    <p>{meeting.summary}</p>
+                    <Markdown className="prose mt-8">{meeting.mom}</Markdown>
+                  </>
+                ) : (
+                  <LoadingSummary />
+                )}
+              </TabsContent>
+              <TabsContent value="transcript" className="px-4 lg:px-6">
+                {meeting.transcript ? (
+                  meeting.transcript.segments.map((item) => (
+                    <div
+                      key={item.text}
+                      className={cn(
+                        "rounded-md border border-transparent p-2 flex gap-2 justify-between items-start group relative",
+                        currentTime >= item.start && currentTime < item.end
+                          ? "bg-neutral-100 border-neutral-200"
+                          : ""
+                      )}
+                    >
+                      <div>
+                        <p className="text-sm text-neutral-500">
+                          {secondsToHms(item.start)}
+                        </p>
+                        <p className="w-full">{item.text}</p>
+                      </div>
+                      <button
+                        onClick={() => play(item.start)}
+                        className="absolute inset-0 opacity-0"
+                      >
+                        <Icons.playCircle className="w-6 h-6 text-neutral-500" />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <LoadingTranscript />
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </main>
+      </div>
+    </>
   );
 }
 
@@ -225,7 +268,13 @@ export async function getServerSideProps(context) {
   const resUser = await supabase.auth.getUser();
   const resSession = await supabase.auth.getSession();
 
-  if (!resUser.data || resUser.error) {
+  const resMeeting = await supabase
+    .from("meetings")
+    .select("id, title, file_url, summary, transcript, mom, user_id")
+    .eq("id", context.params.meeting_id)
+    .single();
+
+  if (!resMeeting.data || resMeeting.error) {
     return {
       redirect: {
         destination: "/",
@@ -234,25 +283,14 @@ export async function getServerSideProps(context) {
     };
   }
 
-  const resMeeting = await supabase
-    .from("meetings")
-    .select("*")
-    .eq("id", context.params.meeting_id)
-    .single();
-
-  if (!resMeeting.data || resMeeting.error) {
-    return {
-      redirect: {
-        destination: "/dashboard",
-        permanent: false,
-      },
-    };
-  }
+  const { user_id, ...restMeeting } = resMeeting.data;
+  const user = get(resUser, "data.user", {});
 
   return {
     props: {
-      user: resUser.data.user,
-      meeting: resMeeting.data,
+      isOwner: resMeeting.data.user_id === user?.id,
+      user: user,
+      meeting: restMeeting,
       session: resSession.data,
     },
   };

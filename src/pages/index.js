@@ -2,6 +2,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Icons } from "@/components/icons";
 import { InsufficientCreditDialog } from "@/components/insufficient-credit-dialog";
 import { LoginDialog } from "@/components/login-dialog";
+import { Seo } from "@/components/seo";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem } from "@/components/ui/select";
 import { UserNav } from "@/components/user-nav";
@@ -92,6 +93,7 @@ export default function Page() {
     accept: {
       "audio/mp3": [],
       "audio/wav": [],
+      "audio/mpeg": [],
       "video/mp4": [],
       "video/mov": [],
     },
@@ -116,6 +118,7 @@ export default function Page() {
       reader.readAsDataURL(file);
     },
     onDropRejected: (err) => {
+      console.log(err);
       dispatch({ type: "SET_FILE", payload: null });
 
       const code = err[0].errors[0].code;
@@ -194,52 +197,7 @@ export default function Page() {
 
   return (
     <>
-      <Head>
-        <title>Automate your meeting notes with AI</title>
-        <meta
-          name="description"
-          content="Meeting Assistant will help you to transcribe, summarize, and take notes for your meetings."
-        />
-
-        {/* Open Graph */}
-        <meta
-          property="og:title"
-          content="Automate your meeting notes with AI"
-        />
-        <meta
-          property="og:description"
-          content="Meeting Assistant
-          will help you to transcribe, summarize, and take notes for your meetings."
-        />
-        <meta
-          property="og:url"
-          content="https://meeting-assistant.rub1.cc/"
-        />
-
-        {/* Twitter */}
-        <meta
-          property="og:image"
-          content="https://meeting-assistant.rub1.cc/og-image.png"
-        />
-
-        <meta
-          property="twitter:title"
-          content="Automate your meeting notes with AI"
-        />
-        <meta
-          property="twitter:description"
-          content="Meeting Assistant
-          will help you to transcribe, summarize, and take notes for your meetings."
-        />
-        <meta
-          property="twitter:image"
-          content="https://meeting-assistant.rub1.cc/og-image.png"
-        />
-        <meta
-          property="twitter:url"
-          content="https://meeting-assistant.rub1.cc/"
-        />
-      </Head>
+      <Seo />
       <div className={inter.className}>
         <div className="p-4 flex justify-between items-center relative z-10">
           <Breadcrumbs />
