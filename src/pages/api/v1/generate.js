@@ -21,16 +21,20 @@ export default async function handler(req, res) {
     return res.status(404).json({ message: "Meeting not found" });
   }
 
-  inngest.send({
-    name: "ai/generate",
-    data: {
-      meeting: meeting.data,
-      session: {
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
+  try {
+    inngest.send({
+      name: "ai/generate",
+      data: {
+        meeting: meeting.data,
+        session: {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        },
       },
-    },
-  });
+    });
+  } catch (e) {
+    console.log("~~ [log]: ", e);
+  }
 
   return res.status(200).json({
     message: "Transcription started",
