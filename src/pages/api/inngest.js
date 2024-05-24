@@ -1,13 +1,11 @@
-import { serve } from "inngest/next";
-import { Inngest } from "inngest";
-import { createClient } from "@supabase/supabase-js";
-import { dummyTranscript, dummySummary, dummyMom } from "@/lib/dummy";
-import get from "lodash.get";
 import { LANGUAGES } from "@/lib/constants";
+import { createClient } from "@supabase/supabase-js";
+import { Inngest } from "inngest";
+import { serve } from "inngest/next";
+import get from "lodash.get";
 
 export const inngest = new Inngest({
   id: "meeting-assistant",
-  eventKey: process.env.INNGEST_EVENT_KEY,
 });
 
 const supabase = createClient(
