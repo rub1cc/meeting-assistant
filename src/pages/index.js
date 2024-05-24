@@ -18,7 +18,6 @@ import { SelectTrigger } from "@radix-ui/react-select";
 import { useQuery } from "@tanstack/react-query";
 import get from "lodash.get";
 import { Inter } from "next/font/google";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import { useReducer, useState } from "react";
 import { useDropzone } from "react-dropzone";
@@ -93,7 +92,7 @@ export default function Page() {
     accept: {
       "audio/mp3": [],
       "audio/wav": [],
-      "audio/mpeg": [],
+      // "audio/mpeg": [],
       "video/mp4": [],
       "video/mov": [],
     },
@@ -242,7 +241,7 @@ export default function Page() {
                   >
                     <p>
                       Language:{" "}
-                      <span className="text-blue-500 font-bold">
+                      <span className="text-purple-500 font-bold">
                         {LANGUAGES[input.language]}
                       </span>
                     </p>
@@ -301,7 +300,7 @@ export default function Page() {
             </div>
 
             {isDragActive && (
-              <div className="absolute inset-0 bg-blue-500 text-white flex justify-center items-center text-8xl">
+              <div className="absolute inset-0 bg-purple-500 text-white flex justify-center items-center text-8xl">
                 Drop it!
               </div>
             )}

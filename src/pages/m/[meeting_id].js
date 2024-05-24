@@ -232,7 +232,7 @@ export default function Page({ isOwner, meeting: defaultMeeting }) {
                       className={cn(
                         "rounded-md border border-transparent p-2 flex gap-2 justify-between items-start group relative",
                         currentTime >= item.start && currentTime < item.end
-                          ? "bg-neutral-100 border-neutral-200"
+                          ? "bg-purple-50 border-purple-300"
                           : ""
                       )}
                     >

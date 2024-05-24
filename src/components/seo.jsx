@@ -11,14 +11,14 @@ export function Seo({
       <meta name="description" content={description} />
 
       {/* Open Graph */}
-      <meta property="og:title" content="{title}" />
+      <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:url" content="https://meeting-assistant.rub1.cc/" />
 
       {/* Twitter */}
       <meta property="og:image" content={image} />
 
-      <meta property="twitter:title" content="{title}" />
+      <meta property="twitter:title" content={title} />
       <meta property="twitter:description" content={description} />
       <meta property="twitter:image" content={image} />
       <meta
