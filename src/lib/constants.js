@@ -14,4 +14,10 @@ export const PRICE = [
 export const LANGUAGES = {
   en: "English",
   id: "Indonesia",
+  zh: "Chinese",
+  fr: "French",
+  de: "German",
+  it: "Italian",
+  ja: "Japanese",
+  ko: "Korean",
 };

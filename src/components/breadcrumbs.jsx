@@ -12,8 +12,14 @@ export function Breadcrumbs({ paths = [] }) {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink href="/" className="font-bold text-foreground">
-            Meeting Assistant
+          <BreadcrumbLink
+            href="/"
+            className="font-bold text-foreground flex items-center gap-1"
+          >
+            <p>Meeting Assistant</p>
+            <p className="text-[8px] font-bold border border-neutral-500 rounded-sm px-1 flex h-4 justify-center items-center">
+              BETA
+            </p>
           </BreadcrumbLink>
         </BreadcrumbItem>
         {paths.map((item) => (
