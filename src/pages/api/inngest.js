@@ -5,7 +5,10 @@ import { dummyTranscript, dummySummary, dummyMom } from "@/lib/dummy";
 import get from "lodash.get";
 import { LANGUAGES } from "@/lib/constants";
 
-export const inngest = new Inngest({ id: "meeting-assistant" });
+export const inngest = new Inngest({
+  id: "meeting-assistant",
+  eventKey: process.env.INNGEST_EVENT_KEY,
+});
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
