@@ -92,7 +92,7 @@ export default function Page() {
     accept: {
       "audio/mp3": [],
       "audio/wav": [],
-      // "audio/mpeg": [],
+      "audio/mpeg": [],
       "video/mp4": [],
       "video/mov": [],
     },
