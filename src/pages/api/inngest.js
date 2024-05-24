@@ -6,6 +6,7 @@ import get from "lodash.get";
 
 export const inngest = new Inngest({
   id: "meeting-assistant",
+  eventKey: process.env.INNGEST_EVENT_KEY,
 });
 
 const supabase = createClient(
