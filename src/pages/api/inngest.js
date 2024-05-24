@@ -5,6 +5,7 @@ import { serve } from "inngest/next";
 import get from "lodash.get";
 
 export const inngest = new Inngest({
+  fetch: fetch.bind(globalThis),
   id: "meeting-assistant",
   eventKey: process.env.INNGEST_EVENT_KEY,
 });
