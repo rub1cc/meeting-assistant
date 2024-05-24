@@ -1,18 +1,11 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Card } from "@/components/ui/card";
 import { UserNav } from "@/components/user-nav";
 import { createSupabaseComponentClient } from "@/lib/supabase/component";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { formatDistance } from "date-fns";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import Link from "next/link";
 
 export default function Page({ user }) {
   const supabase = createSupabaseComponentClient();
@@ -46,7 +39,7 @@ export default function Page({ user }) {
         />
         <UserNav />
       </div>
-      <main className="w-full max-w-4xl mx-auto mt-8 px-4 md:px-0">
+      <main className="w-full max-w-4xl mx-auto mt-8 px-4 lg:px-0">
         <h1 className="border-b border-neutral-200 pb-4">Recent meetings</h1>
         <div className="mt-8">
           {getMyMeetingQuery.data && getMyMeetingQuery.data.length > 0 ? (

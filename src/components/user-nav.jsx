@@ -9,7 +9,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createSupabaseComponentClient } from "@/lib/supabase/component";
-import { secondsToCreditsLong, secondsToCreditsShort } from "@/lib/utils";
+import {
+  getInitials,
+  secondsToCreditsLong,
+  secondsToCreditsShort,
+} from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import get from "lodash.get";
 import Link from "next/link";
@@ -21,14 +25,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { UploadButton } from "./upload-button";
-
-const getInitials = (name) => {
-  if (!name) return "";
-  return name
-    .split(" ")
-    .map((word) => word.charAt(0))
-    .join("");
-};
+import { GuestNav } from "./guest-nav";
 
 export function UserNav({ showUpload = true }) {
   const supabase = createSupabaseComponentClient();
@@ -63,6 +60,10 @@ export function UserNav({ showUpload = true }) {
   });
 
   const credits = get(getBalanceQuery, "data.credits", 0);
+
+  if (!user) {
+    return <GuestNav />;
+  }
 
   return (
     <div className="flex gap-2 md:gap-4 items-center">
@@ -108,7 +109,9 @@ export function UserNav({ showUpload = true }) {
                     className="rounded-full text-xs gap-1.5"
                   >
                     <Icons.clock className="size-5" />
-                    {credits > 0 ? secondsToCreditsShort(credits) : ""}
+                    {credits > 0
+                      ? secondsToCreditsShort(credits)
+                      : "No credits"}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -144,9 +147,7 @@ export function UserNav({ showUpload = true }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="gap-2"
-            onClick={() =>
-              supabase.auth.signOut().finally(() => window.location.reload())
-            }
+            onClick={() => (window.location.href = "/logout")}
           >
             <Icons.logout className="w-4 h-4" />
             Log out

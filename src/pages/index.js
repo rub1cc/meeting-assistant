@@ -1,10 +1,11 @@
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { GuestNav } from "@/components/guest-nav";
 import { Icons } from "@/components/icons";
+import { InsufficientCreditDialog } from "@/components/insufficient-credit-dialog";
 import { LoginDialog } from "@/components/login-dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem } from "@/components/ui/select";
 import { UserNav } from "@/components/user-nav";
+import { LANGUAGES } from "@/lib/constants";
 import { createSupabaseComponentClient } from "@/lib/supabase/component";
 import {
   cn,
@@ -16,6 +17,7 @@ import { SelectTrigger } from "@radix-ui/react-select";
 import { useQuery } from "@tanstack/react-query";
 import get from "lodash.get";
 import { Inter } from "next/font/google";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { useReducer, useState } from "react";
 import { useDropzone } from "react-dropzone";
@@ -23,14 +25,14 @@ import { toast } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const LANGUAGES = ["English", "Indonesian"];
-
-const formReducer = (state, action) => {
+const inputReducer = (state, action) => {
   switch (action.type) {
     case "SET_STATUS":
       return { ...state, status: action.payload };
     case "SET_FILE":
       return { ...state, file: action.payload };
+    case "SET_FILE_DURATION":
+      return { ...state, file_duration: action.payload };
     case "SET_LANGUAGE":
       return { ...state, language: action.payload };
 
@@ -52,13 +54,38 @@ export default function Page() {
       return data;
     },
   });
-  const [form, dispatch] = useReducer(formReducer, {
+
+  const user = get(getMeQuery, "data.user", null);
+
+  const getBalanceQuery = useQuery({
+    queryKey: ["balance"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("balance")
+        .select("credits")
+        .eq("user_id", user?.id)
+        .single();
+      if (error) {
+        throw error;
+      }
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const credits = get(getBalanceQuery, "data.credits", 0);
+
+  const [input, dispatch] = useReducer(inputReducer, {
     status: "idle",
     file: null,
-    language: "English",
+    language: "en",
   });
 
   const [isShowingLoginDialog, setIsShowingLoginDialog] = useState(false);
+  const [
+    isShowingInsufficientCreditsDialog,
+    setIsShowingInsufficientCreditsDialog,
+  ] = useState(false);
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     noClick: true,
@@ -68,7 +95,9 @@ export default function Page() {
       "video/mp4": [],
       "video/mov": [],
     },
+
     maxFiles: 1,
+    maxSize: 25 * 1024 * 1024,
     onDropAccepted: async (files) => {
       const file = files[0];
       const reader = new FileReader();
@@ -79,6 +108,7 @@ export default function Page() {
           audio.src = e.target.result;
           audio.addEventListener("loadedmetadata", function () {
             dispatch({ type: "SET_FILE", payload: file });
+            dispatch({ type: "SET_FILE_DURATION", payload: audio.duration });
           });
         };
       }
@@ -107,21 +137,26 @@ export default function Page() {
   });
 
   const handleSummarize = async () => {
-    const userId = get(getMeQuery, "data.user.id", null);
-
-    if (!userId) {
+    if (!user?.id) {
       setIsShowingLoginDialog(true);
+      return;
+    }
+
+    if (input.file_duration > credits) {
+      setIsShowingInsufficientCreditsDialog(true);
       return;
     }
 
     try {
       // upload file to supabase storage
-      const fileName = `${userId}/${generateRandomString()}-${form.file.name}`;
+      const fileName = `${user?.id}/${generateRandomString()}-${
+        input.file.name
+      }`;
 
       dispatch({ type: "SET_STATUS", payload: "loading" });
       const resUpload = await supabase.storage
         .from("uploads")
-        .upload(fileName, form.file);
+        .upload(fileName, input.file);
 
       if (resUpload.error) {
         dispatch({ type: "SET_STATUS", payload: "idle" });
@@ -134,10 +169,10 @@ export default function Page() {
       const resInsert = await supabase
         .from("meetings")
         .insert({
-          user_id: userId,
-          title: form.file.name,
+          user_id: user?.id,
+          title: input.file.name,
           file_url: imageUrl,
-          language: form.language,
+          language: input.language,
         })
         .select("id")
         .single();
@@ -158,123 +193,171 @@ export default function Page() {
   };
 
   return (
-    <div className={inter.className}>
-      <div className="p-4 flex justify-between items-center relative z-10">
-        <Breadcrumbs />
-        <div className="flex gap-4 items-center">
-          {getMeQuery.data && getMeQuery.data.user ? (
+    <>
+      <Head>
+        <title>Automate your meeting notes with AI</title>
+        <meta
+          name="description"
+          content="Meeting Assistant will help you to transcribe, summarize, and take notes for your meetings."
+        />
+
+        {/* Open Graph */}
+        <meta
+          property="og:title"
+          content="Automate your meeting notes with AI"
+        />
+        <meta
+          property="og:description"
+          content="Meeting Assistant
+          will help you to transcribe, summarize, and take notes for your meetings."
+        />
+        <meta
+          property="og:url"
+          content="https://meeting-assistant.rub1.cc/"
+        />
+
+        {/* Twitter */}
+        <meta
+          property="og:image"
+          content="https://meeting-assistant.rub1.cc/og-image.png"
+        />
+
+        <meta
+          property="twitter:title"
+          content="Automate your meeting notes with AI"
+        />
+        <meta
+          property="twitter:description"
+          content="Meeting Assistant
+          will help you to transcribe, summarize, and take notes for your meetings."
+        />
+        <meta
+          property="twitter:image"
+          content="https://meeting-assistant.rub1.cc/og-image.png"
+        />
+        <meta
+          property="twitter:url"
+          content="https://meeting-assistant.rub1.cc/"
+        />
+      </Head>
+      <div className={inter.className}>
+        <div className="p-4 flex justify-between items-center relative z-10">
+          <Breadcrumbs />
+          <div className="flex gap-4 items-center">
             <UserNav showUpload={false} />
-          ) : (
-            <GuestNav />
-          )}
+          </div>
         </div>
-      </div>
-      {form.file ? (
-        <div className="flex justify-center items-center fixed inset-0">
-          <div className="w-screen max-w-xs space-y-4">
-            <h1 className="text-2xl font-bold">Before we start...</h1>
-            <Button
-              size="xl"
-              variant="secondary"
-              className="flex justify-between items-center gap-4 group px-4 w-full group cursor-default"
-            >
-              <div className="flex items-center gap-2">
-                <Icons.soundWave className="w-6 h-6 bg-primary text-primary-foreground rounded-sm p-1" />
-                <p>{formatFileName(form.file.name)}</p>
-              </div>
-              <button
-                className="opacity-0 transition duration-300 group-hover:opacity-100"
-                onClick={() => {
-                  if (form.status !== "idle") return;
-                  dispatch({ type: "SET_FILE", payload: null });
+        {input.file ? (
+          <div className="flex justify-center items-center fixed inset-0">
+            <div className="w-screen max-w-xs space-y-4">
+              <h1 className="text-2xl font-bold">Before we start...</h1>
+              <Button
+                size="xl"
+                variant="secondary"
+                className="flex justify-between items-center gap-4 group px-4 w-full group cursor-default"
+              >
+                <div className="flex items-center gap-2">
+                  <Icons.soundWave className="w-6 h-6 bg-primary text-primary-foreground rounded-sm p-1" />
+                  <p>{formatFileName(input.file.name)}</p>
+                </div>
+                <button
+                  className="opacity-0 transition duration-300 group-hover:opacity-100"
+                  onClick={() => {
+                    if (input.status !== "idle") return;
+                    dispatch({ type: "SET_FILE", payload: null });
+                  }}
+                >
+                  Replace
+                </button>
+              </Button>
+              <Select
+                value={input.language}
+                onValueChange={(value) => {
+                  dispatch({ type: "SET_LANGUAGE", payload: value });
                 }}
               >
-                Replace
-              </button>
-            </Button>
-            <Select
-              value={form.language}
-              onValueChange={(value) => {
-                dispatch({ type: "SET_LANGUAGE", payload: value });
-              }}
-            >
-              <SelectTrigger asChild>
-                <Button
-                  size="xl"
-                  variant="secondary"
-                  className="flex justify-between items-center gap-4 group px-4 w-full"
-                >
-                  <p>
-                    Language:{" "}
-                    <span className="text-blue-500 font-bold">
-                      {form.language}
-                    </span>
-                  </p>
-                  <Icons.chevronDown className="w-4 h-4 inline-block ml-2" />
-                </Button>
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((lang) => (
-                  <SelectItem key={lang} value={lang}>
-                    {lang}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger asChild>
+                  <Button
+                    size="xl"
+                    variant="secondary"
+                    className="flex justify-between items-center gap-4 group px-4 w-full"
+                  >
+                    <p>
+                      Language:{" "}
+                      <span className="text-blue-500 font-bold">
+                        {LANGUAGES[input.language]}
+                      </span>
+                    </p>
+                    <Icons.chevronDown className="w-4 h-4 inline-block ml-2" />
+                  </Button>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(LANGUAGES).map(([id, label]) => (
+                    <SelectItem key={id} value={id}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Button
-              disabled={form.status !== "idle"}
-              size="xl"
-              className="gap-2 w-full"
-              onClick={handleSummarize}
-            >
-              {form.status === "idle" ? (
-                <span className="flex items-center gap-2">
-                  Summarize
-                  <Icons.sparkles className="w-4 h-4" />
-                </span>
-              ) : (
-                <Icons.loading className="w-6 h-6" />
-              )}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div
-          className={cn(
-            "w-full h-full flex justify-center items-center fixed inset-0",
-            isDragActive && "z-10"
-          )}
-          {...getRootProps()}
-        >
-          <div>
-            <h1 className="text-4xl md:text-6xl lg:text-8xl font-bold">
-              Drop a file to <br />
-              summarize it.
-            </h1>
-            <input {...getInputProps()} />
-            <button
-              className="flex items-center gap-4 mt-8 group"
-              onClick={open}
-            >
-              <div className="rounded-full bg-primary/10 text-foreground p-2 group-hover:bg-primary/20 transition duration-300">
-                <Icons.plus className="w-5 h-5" />
-              </div>
-              <p>Or upload a file</p>
-            </button>
-          </div>
-
-          {isDragActive && (
-            <div className="absolute inset-0 bg-blue-500 text-white flex justify-center items-center text-8xl">
-              Drop it!
+              <Button
+                disabled={input.status !== "idle"}
+                size="xl"
+                className="gap-2 w-full"
+                onClick={handleSummarize}
+              >
+                {input.status === "idle" ? (
+                  <span className="flex items-center gap-2">
+                    Summarize
+                    <Icons.sparkles className="w-4 h-4" />
+                  </span>
+                ) : (
+                  <Icons.loading className="w-6 h-6" />
+                )}
+              </Button>
             </div>
-          )}
-        </div>
-      )}
-      <LoginDialog
-        isOpen={isShowingLoginDialog}
-        onOpenChange={setIsShowingLoginDialog}
-      />
-    </div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "w-full h-full flex justify-center items-center fixed inset-0",
+              isDragActive && "z-10"
+            )}
+            {...getRootProps()}
+          >
+            <div>
+              <h1 className="text-4xl md:text-6xl lg:text-8xl font-bold">
+                Drop a file to <br />
+                summarize it.
+              </h1>
+              <input {...getInputProps()} />
+              <button
+                className="flex items-center gap-4 mt-8 group"
+                onClick={open}
+              >
+                <div className="rounded-full bg-primary/10 text-foreground p-2 group-hover:bg-primary/20 transition duration-300">
+                  <Icons.plus className="w-5 h-5" />
+                </div>
+                <p>Or upload a file</p>
+              </button>
+            </div>
+
+            {isDragActive && (
+              <div className="absolute inset-0 bg-blue-500 text-white flex justify-center items-center text-8xl">
+                Drop it!
+              </div>
+            )}
+          </div>
+        )}
+        <LoginDialog
+          isOpen={isShowingLoginDialog}
+          onOpenChange={setIsShowingLoginDialog}
+        />
+        <InsufficientCreditDialog
+          isOpen={isShowingInsufficientCreditsDialog}
+          onOpenChange={setIsShowingInsufficientCreditsDialog}
+        />
+      </div>
+    </>
   );
 }

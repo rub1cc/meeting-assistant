@@ -4,7 +4,6 @@ import { LoadingSummary } from "@/components/loading-summary";
 import { LoadingTranscript } from "@/components/loading-transcript";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -15,25 +14,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UploadButton } from "@/components/upload-button";
 import { UserNav } from "@/components/user-nav";
 import { createSupabaseComponentClient } from "@/lib/supabase/component";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { secondsToHms } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { toast } from "sonner";
 
-export default function Page({ session, user, meeting: defaultMeeting }) {
+export default function Page({ meeting: defaultMeeting }) {
   const supabase = createSupabaseComponentClient();
   const [meeting, setMeeting] = useState(defaultMeeting);
   const ref = useRef(null);
   const router = useRouter();
 
-  console.log(meeting);
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
@@ -108,7 +104,7 @@ export default function Page({ session, user, meeting: defaultMeeting }) {
         />
         <UserNav />
       </div>
-      <main className="w-full max-w-[70ch] mx-auto mt-8 gap-8 h-full pb-[150px] px-4 md:px-0">
+      <main className="w-full max-w-[70ch] mx-auto mt-8 gap-8 h-full pb-[150px] px-4 lg:px-0">
         <Tabs defaultValue="summary">
           <div className="sticky top-0 bg-white py-4 flex justify-between items-center">
             <TabsList>
@@ -210,7 +206,7 @@ export default function Page({ session, user, meeting: defaultMeeting }) {
           </TabsContent>
         </Tabs>
 
-        <div className="fixed bottom-0 inset-x-0 bg-white flex justify-center w-full py-4 px-4 md:px-0">
+        <div className="fixed bottom-0 inset-x-0 bg-white flex justify-center w-full py-4 px-4 lg:px-0">
           <audio
             ref={ref}
             controls

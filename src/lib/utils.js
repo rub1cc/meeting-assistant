@@ -74,3 +74,11 @@ export const getImageUrl = (bucket, path) => {
     path
   );
 };
+
+export const getInitials = (name) => {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((word) => word.charAt(0))
+    .join("");
+};

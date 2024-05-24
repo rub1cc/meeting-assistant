@@ -3,7 +3,7 @@ import { inngest } from "../inngest";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
-    return res.status(404).json({ message: "Not found" });
+    return res.status(405).json({ message: "Method not allowed" });
   }
 
   const supabase = createSupabaseApiClient(req, res);
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   const meeting = await supabase
     .from("meetings")
-    .select("id, file_url, language")
+    .select("id, file_url, language, user_id")
     .eq("id", req.query.meeting_id)
     .single();
 
